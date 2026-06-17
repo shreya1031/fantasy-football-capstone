@@ -1,0 +1,35 @@
+:root {
+  --font-display: "Oswald", sans-serif;
+  --font-body: "Source Sans 3", sans-serif;
+  --font-stat: "Oswald", sans-serif;
+
+  --bg-0: #f0f5f0;
+  --bg-1: #ffffff;
+  --bg-2: #e4ede4;
+  --fg-0: #1a2e1a;
+  --fg-1: #3d5240;
+  --fg-2: #6b7c6e;
+
+  --pitch-light: #4caf6a;
+  --pitch-dark: #3d9e59;
+  --accent-green: #1b7a4e;
+  --accent-orange: #dc2626;
+  --accent-gold: #c49102;
+  --accent-blue: #1e40af;
+  --accent-magenta: #dc2626;
+  --accent-amber: #c49102;
+
+  --panel-border: rgba(27, 122, 78, 0.18);
+  --hairline: rgba(27, 122, 78, 0.35);
+  --glow-green: 0 4px 20px rgba(27, 122, 78, 0.12);
+  --glow-orange: 0 4px 16px rgba(220, 38, 38, 0.12);
+  --card-shadow: 0 2px 12px rgba(26, 46, 26, 0.06);
+}
+
+[data-vignette="home"] {
+  --vignette: radial-gradient(ellipse at 50% 0%, rgba(76, 175, 106, 0.08), transparent 55%);
+}
+
+[data-vignette="away"] {
+  --vignette: radial-gradient(ellipse at 50% 0%, rgba(27, 122, 78, 0.06), transparent 55%);
+}
