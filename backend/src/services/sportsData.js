@@ -34,7 +34,11 @@ async function apiGet(path, params = {}) {
   }
 }
 
-function mapPlayer(player) {
+function mapPlayer(entry) {
+  const player = entry.player ?? entry;
+  const stats = entry.statistics?.[0];
+  const team = player.team ?? stats?.team;
+
   return {
     id: player.id,
     name: player.name,
@@ -43,12 +47,12 @@ function mapPlayer(player) {
     age: player.age,
     nationality: player.nationality,
     photo: player.photo,
-    position: normalizePosition(player.position),
-    team: player.team
+    position: normalizePosition(player.position ?? stats?.games?.position),
+    team: team
       ? {
-          id: player.team.id,
-          name: player.team.name,
-          logo: player.team.logo,
+          id: team.id,
+          name: team.name,
+          logo: team.logo,
         }
       : null,
   };
@@ -80,7 +84,7 @@ export const sportsData = {
       })
     );
 
-    const players = data.map((entry) => mapPlayer(entry.player));
+    const players = data.map((entry) => mapPlayer(entry));
     return { players, page, total: players.length };
   },
 
@@ -92,7 +96,7 @@ export const sportsData = {
     if (!data.length) return null;
     const entry = data[0];
     return {
-      ...mapPlayer(entry.player),
+      ...mapPlayer(entry),
       statistics: entry.statistics ?? [],
     };
   },
