@@ -12,12 +12,12 @@ function isFixtureFinished(fixture) {
   return ['FT', 'AET', 'PEN'].includes(status);
 }
 
-async function fetchFixturesForGameweek(gameweek) {
+async function fetchFixturesForGameweek(gameweek, season) {
   const dates = getGameweekDates(gameweek);
   const fixtures = [];
 
   for (const date of dates) {
-    const dayFixtures = await sportsData.getFixturesByDate(date);
+    const dayFixtures = await sportsData.getFixturesByDate(date, env.DEFAULT_LEAGUE_ID, season);
     fixtures.push(...dayFixtures);
   }
 
@@ -25,7 +25,7 @@ async function fetchFixturesForGameweek(gameweek) {
 }
 
 async function computeTeamScore(team, gameweek, season) {
-  const fixtures = await fetchFixturesForGameweek(gameweek);
+  const fixtures = await fetchFixturesForGameweek(gameweek, season);
   const playerEntries = [];
 
   for (const player of team.players) {

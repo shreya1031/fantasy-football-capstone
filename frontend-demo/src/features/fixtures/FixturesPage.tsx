@@ -4,6 +4,7 @@ import { Panel } from '../../design/primitives/Panel';
 import { BadgeChip } from '../../design/primitives/BadgeChip';
 import { LoadingState, ErrorState, EmptyState } from '../../design/primitives/States';
 import { useFixtures, useFixture } from '../../lib/hooks';
+import { DEFAULT_FIXTURE_DATE } from '../../lib/config';
 import type { Fixture } from '../../lib/types';
 
 function FixtureModal({ fixtureId, onClose }: { fixtureId: number; onClose: () => void }) {
@@ -46,7 +47,7 @@ function FixtureModal({ fixtureId, onClose }: { fixtureId: number; onClose: () =
 }
 
 export function FixturesPage() {
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(DEFAULT_FIXTURE_DATE);
   const [selectedFixture, setSelectedFixture] = useState<number | null>(null);
   const { data, isLoading, error, refetch } = useFixtures(date);
 

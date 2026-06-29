@@ -5,12 +5,12 @@ import { Button } from '../../design/primitives/Button';
 import { BadgeChip } from '../../design/primitives/BadgeChip';
 import { LoadingState, ErrorState, EmptyState } from '../../design/primitives/States';
 import { useTeams, useLeagues, useFixtures, useTeamScore } from '../../lib/hooks';
+import { DEFAULT_FIXTURE_DATE } from '../../lib/config';
 
 export function DashboardPage() {
   const { data: teams, isLoading: teamsLoading, error: teamsError, refetch: refetchTeams } = useTeams();
   const { data: leagues, isLoading: leaguesLoading } = useLeagues();
-  const today = new Date().toISOString().slice(0, 10);
-  const { data: fixturesData, isLoading: fixturesLoading } = useFixtures(today);
+  const { data: fixturesData, isLoading: fixturesLoading } = useFixtures(DEFAULT_FIXTURE_DATE);
 
   const primaryTeam = teams?.[0];
   const { data: scoreData } = useTeamScore(primaryTeam?._id);

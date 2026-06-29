@@ -2,7 +2,6 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { sportsData } from '../services/sportsData.js';
 import { validate } from '../middleware/validate.js';
-import { env } from '../config/env.js';
 
 const router = Router();
 
@@ -17,8 +16,8 @@ router.get('/', validate(dateSchema, 'query'), async (req, res, next) => {
     const date = req.validatedQuery.date ?? new Date().toISOString().slice(0, 10);
     const fixtures = await sportsData.getFixturesByDate(
       date,
-      req.validatedQuery.league ?? env.DEFAULT_LEAGUE_ID,
-      req.validatedQuery.season ?? env.DEFAULT_SEASON
+      req.validatedQuery.league,
+      req.validatedQuery.season
     );
     res.json({ date, fixtures });
   } catch (error) {

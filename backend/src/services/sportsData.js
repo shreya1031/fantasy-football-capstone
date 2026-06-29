@@ -101,7 +101,7 @@ export const sportsData = {
     };
   },
 
-  async getFixturesByDate(date, league = env.DEFAULT_LEAGUE_ID, season = env.DEFAULT_SEASON) {
+  async getFixturesByDate(date, league, season) {
     const key = `fixtures:date:${date}:${league}:${season}`;
     return cachedRequest(key, TTL.fixturesByDate, () =>
       apiGet('/fixtures', { date, league, season })
