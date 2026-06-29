@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "frontend-demo",
+			"path": "../../Capstone2026/frontend-demo"
+		},
+		{
+			"name": "FANTASY_FOOTBALL",
+			"path": ".."
+		}
+	],
+	"settings": {}
+}
