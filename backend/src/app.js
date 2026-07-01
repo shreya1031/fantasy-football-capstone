@@ -17,11 +17,17 @@ import scoringRoutes from './routes/scoring.js';
 
 export function createApp() {
   const app = express();
+  const allowedOrigins = env.CORS_ORIGIN.split(',').map((origin) => origin.trim());
 
   app.use(helmet());
   app.use(
     cors({
-      origin: env.CORS_ORIGIN,
+      origin(origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error(`CORS origin not allowed: ${origin}`));
+      },
       credentials: true,
     })
   );

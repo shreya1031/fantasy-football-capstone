@@ -22,12 +22,17 @@ const loginSchema = z.object({
 });
 
 function setRefreshCookie(res, token) {
-  res.cookie('refreshToken', token, {
+  res.cookie('refreshToken', token, getRefreshCookieOptions());
+}
+
+function getRefreshCookieOptions() {
+  const isProduction = env.NODE_ENV === 'production';
+  return {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+  };
 }
 
 function authResponse(user, res, statusCode = 200) {
@@ -91,7 +96,7 @@ router.post('/refresh', async (req, res, next) => {
 });
 
 router.post('/logout', (_req, res) => {
-  res.clearCookie('refreshToken');
+  res.clearCookie('refreshToken', getRefreshCookieOptions());
   res.json({ message: 'Logged out' });
 });
 
