@@ -11,6 +11,7 @@ import { Pitch } from '../../team-builder/Pitch';
 import { validateTeam, FORMATION_SLOTS } from '../../team-builder/formations';
 import type { Player, PlayerSlot } from '../../../lib/types';
 import { getErrorMessage } from '../../../lib/errors';
+import { useDebouncedValue } from '../../../lib/useDebouncedValue';
 
 export function PlayerSelectionPage() {
   const navigate = useNavigate();
@@ -23,8 +24,9 @@ export function PlayerSelectionPage() {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
 
-  const { data: playersData, isLoading: playersLoading } = usePlayers(search);
+  const { data: playersData, isLoading: playersLoading } = usePlayers(debouncedSearch);
 
   useEffect(() => {
     if (!name) navigate('/team/create', { replace: true });

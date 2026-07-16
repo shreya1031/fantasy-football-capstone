@@ -10,6 +10,7 @@ import { Pitch } from './Pitch';
 import { emptySlots, validateTeam, FORMATION_SLOTS } from './formations';
 import type { Formation, Player, PlayerSlot } from '../../lib/types';
 import { getErrorMessage } from '../../lib/errors';
+import { useDebouncedValue } from '../../lib/useDebouncedValue';
 
 const FORMATIONS: Formation[] = ['4-4-2', '4-3-3', '3-5-2'];
 
@@ -26,8 +27,9 @@ export function TeamBuilderPage() {
   const [selectedSlot, setSelectedSlot] = useState<number | null>(null);
   const [search, setSearch] = useState('');
   const [error, setError] = useState('');
+  const debouncedSearch = useDebouncedValue(search);
 
-  const { data: playersData, isLoading: playersLoading } = usePlayers(search);
+  const { data: playersData, isLoading: playersLoading } = usePlayers(debouncedSearch);
 
   useEffect(() => {
     if (existingTeam) {

@@ -6,11 +6,12 @@ import { AppError } from '../utils/errors.js';
 const TTL = {
   leagues: 24 * 60 * 60 * 1000,
   teams: 24 * 60 * 60 * 1000,
-  fixturesByDate: 10 * 60 * 1000,
+  fixturesByDate: 60 * 60 * 1000,
   fixtureById: 30 * 1000,
   standings: 15 * 60 * 1000,
   players: 12 * 60 * 60 * 1000,
   playerStats: 30 * 60 * 1000,
+  apiFailure: 5 * 60 * 1000,
 };
 
 const client = axios.create({
@@ -32,6 +33,10 @@ async function apiGet(path, params = {}) {
     if (error instanceof AppError) throw error;
     throw new AppError('API_FOOTBALL_UNAVAILABLE', 'Sports data provider unavailable', 502);
   }
+}
+
+function cachedSportsDataRequest(key, ttlMs, fetcher) {
+  return cachedRequest(key, ttlMs, fetcher, { failureTtlMs: TTL.apiFailure });
 }
 
 function mapPlayer(entry) {
@@ -75,7 +80,7 @@ function normalizePosition(position) {
 export const sportsData = {
   async getPlayers({ league = env.DEFAULT_LEAGUE_ID, season = env.DEFAULT_SEASON, search = '', page = 1 }) {
     const key = `players:${league}:${season}:${search}:${page}`;
-    const data = await cachedRequest(key, TTL.players, () =>
+    const data = await cachedSportsDataRequest(key, TTL.players, () =>
       apiGet('/players', {
         league,
         season,
@@ -90,7 +95,7 @@ export const sportsData = {
 
   async getPlayerById(playerId, season = env.DEFAULT_SEASON) {
     const key = `player:${playerId}:${season}`;
-    const data = await cachedRequest(key, TTL.players, () =>
+    const data = await cachedSportsDataRequest(key, TTL.players, () =>
       apiGet('/players', { id: playerId, season })
     );
     if (!data.length) return null;
@@ -103,14 +108,14 @@ export const sportsData = {
 
   async getFixturesByDate(date, league, season) {
     const key = `fixtures:date:${date}:${league}:${season}`;
-    return cachedRequest(key, TTL.fixturesByDate, () =>
+    return cachedSportsDataRequest(key, TTL.fixturesByDate, () =>
       apiGet('/fixtures', { date, league, season })
     );
   },
 
   async getFixtureById(fixtureId) {
     const key = `fixture:${fixtureId}`;
-    const data = await cachedRequest(key, TTL.fixtureById, () =>
+    const data = await cachedSportsDataRequest(key, TTL.fixtureById, () =>
       apiGet('/fixtures', { id: fixtureId })
     );
     return data[0] ?? null;
@@ -118,7 +123,7 @@ export const sportsData = {
 
   async getStandings(league = env.DEFAULT_LEAGUE_ID, season = env.DEFAULT_SEASON) {
     const key = `standings:${league}:${season}`;
-    const data = await cachedRequest(key, TTL.standings, () =>
+    const data = await cachedSportsDataRequest(key, TTL.standings, () =>
       apiGet('/standings', { league, season })
     );
     return data[0]?.league?.standings?.[0] ?? [];
@@ -126,7 +131,7 @@ export const sportsData = {
 
   async getPlayerFixtureStats(playerId, fixtureId) {
     const key = `playerStats:${playerId}:${fixtureId}`;
-    const data = await cachedRequest(key, TTL.playerStats, () =>
+    const data = await cachedSportsDataRequest(key, TTL.playerStats, () =>
       apiGet('/fixtures/players', { fixture: fixtureId, id: playerId })
     );
 
@@ -147,7 +152,7 @@ export const sportsData = {
 
   async getLeagues() {
     const key = 'leagues:all';
-    return cachedRequest(key, TTL.leagues, () => apiGet('/leagues'));
+    return cachedSportsDataRequest(key, TTL.leagues, () => apiGet('/leagues'));
   },
 };
 

@@ -2,6 +2,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
 import type { Team, League, Membership, Player, Fixture, StandingRow, GameweekScore, LeaderboardRow } from './types';
 
+const SECOND = 1000;
+const MINUTE = 60 * SECOND;
+const HOUR = 60 * MINUTE;
+
+const paidDataQueryOptions = {
+  retry: false,
+};
+
 export function useTeams() {
   return useQuery({
     queryKey: ['teams'],
@@ -108,6 +116,8 @@ export function useJoinLeague() {
 export function usePlayers(search: string, page = 1) {
   return useQuery({
     queryKey: ['players', search, page],
+    staleTime: 12 * HOUR,
+    ...paidDataQueryOptions,
     queryFn: async () => {
       const { data } = await api.get<{ players: Player[]; page: number; total: number }>('/players', {
         params: { search, page },
@@ -121,6 +131,8 @@ export function usePlayer(id?: string) {
   return useQuery({
     queryKey: ['players', id],
     enabled: !!id,
+    staleTime: 12 * HOUR,
+    ...paidDataQueryOptions,
     queryFn: async () => {
       const { data } = await api.get<{ player: Player }>(`/players/${id}`);
       return data.player;
@@ -131,6 +143,8 @@ export function usePlayer(id?: string) {
 export function useFixtures(date?: string) {
   return useQuery({
     queryKey: ['fixtures', date],
+    staleTime: HOUR,
+    ...paidDataQueryOptions,
     queryFn: async () => {
       const { data } = await api.get<{ date: string; fixtures: Fixture[] }>('/fixtures', {
         params: { date },
@@ -144,6 +158,8 @@ export function useFixture(id?: string) {
   return useQuery({
     queryKey: ['fixtures', id],
     enabled: !!id,
+    staleTime: 30 * SECOND,
+    ...paidDataQueryOptions,
     queryFn: async () => {
       const { data } = await api.get<{ fixture: Fixture }>(`/fixtures/${id}`);
       return data.fixture;
@@ -154,6 +170,8 @@ export function useFixture(id?: string) {
 export function useStandings() {
   return useQuery({
     queryKey: ['standings'],
+    staleTime: 15 * MINUTE,
+    ...paidDataQueryOptions,
     queryFn: async () => {
       const { data } = await api.get<{ standings: StandingRow[] }>('/standings');
       return data.standings;
