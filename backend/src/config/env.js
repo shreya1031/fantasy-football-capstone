@@ -11,8 +11,16 @@ const envSchema = z.object({
   MONGODB_URI: z.string().min(1),
   JWT_SECRET: z.string().min(16),
   JWT_REFRESH_SECRET: z.string().min(16),
-  API_FOOTBALL_KEY: z.string().min(1),
+  FOOTBALL_DATA_KEY: z.string().min(1),
+  FOOTBALL_DATA_COMPETITION: z.string().default('PL'),
+  // Where the player pool and fantasy-scoring stats come from:
+  // 'fpl' (official Fantasy Premier League API, free, no key),
+  // 'api-football' (requires API_FOOTBALL_KEY), or
+  // 'football-data' (no player stats on the free tier — points stay 0).
+  PLAYER_STATS_PROVIDER: z.enum(['fpl', 'api-football', 'football-data']).default('fpl'),
+  API_FOOTBALL_KEY: z.string().optional(),
   API_FOOTBALL_HOST: z.string().default('v3.football.api-sports.io'),
+  API_FOOTBALL_DAILY_LIMIT: z.coerce.number().default(90),
   CORS_ORIGIN: z.string().default('http://localhost:5173'),
   DEFAULT_LEAGUE_ID: z.coerce.number().default(39),
   DEFAULT_SEASON: z.coerce.number().default(2024),

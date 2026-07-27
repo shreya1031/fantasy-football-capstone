@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { api, setAccessToken } from './api';
+import { api, setAccessToken, onAuthFailure } from './api';
 import type { User } from './types';
 
 interface AuthState {
@@ -55,3 +55,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 }));
+
+// When a token refresh fails, drop the stale auth state so ProtectedRoute
+// redirects to the login page instead of leaving pages stuck on 401 errors.
+onAuthFailure(() => {
+  useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+});

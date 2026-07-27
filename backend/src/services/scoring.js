@@ -4,6 +4,8 @@ import { calculatePlayerPoints, aggregateBreakdown } from '../utils/points.js';
 import { getGameweekDates, formatDate } from '../utils/gameweek.js';
 import { env } from '../config/env.js';
 import { notFound } from '../utils/errors.js';
+import { logger } from '../config/logger.js';
+import { fpl } from './fpl.js';
 
 const inFlightScores = new Map();
 
@@ -14,66 +16,140 @@ function isFixtureFinished(fixture) {
 
 async function fetchFixturesForGameweek(gameweek, season) {
   const dates = getGameweekDates(gameweek);
-  const fixtures = [];
+  return sportsData.getScoringFixtures(dates[0], dates[dates.length - 1], season);
+}
 
-  for (const date of dates) {
-    const dayFixtures = await sportsData.getFixturesByDate(date, env.DEFAULT_LEAGUE_ID, season);
-    fixtures.push(...dayFixtures);
+function zeroEntry(player) {
+  return {
+    apiPlayerId: player.apiPlayerId,
+    playerName: player.name,
+    fixtureId: null,
+    points: 0,
+    breakdown: [],
+  };
+}
+
+// FPL path: one live request covers every player's stats for the gameweek.
+// Before the season kicks off that endpoint is empty, so each player scores
+// their real FPL points from last season averaged per gameweek instead.
+async function computeTeamScoreFpl(team, gameweek) {
+  const fixtures = await fpl.getFixturesForGameweek(gameweek);
+  const gameweekFinished = fixtures.length > 0 && fixtures.every(isFixtureFinished);
+  const statsMap = await fpl.getGameweekStatsMap(gameweek, { finished: gameweekFinished });
+
+  let playerEntries;
+  let isFinal = false;
+
+  if (statsMap.size > 0) {
+    playerEntries = team.players.map((player) => {
+      const stats = statsMap.get(player.apiPlayerId);
+      if (!stats || stats.minutes <= 0) return zeroEntry(player);
+      const result = calculatePlayerPoints(stats, player.position, player.isCaptain);
+      return {
+        apiPlayerId: player.apiPlayerId,
+        playerName: player.name,
+        fixtureId: null,
+        points: result.points,
+        breakdown: result.breakdown,
+      };
+    });
+    isFinal = gameweekFinished;
+  } else {
+    playerEntries = [];
+    for (const player of team.players) {
+      let avg = 0;
+      try {
+        avg = await fpl.getLastSeasonAveragePoints(player.apiPlayerId);
+      } catch (error) {
+        logger.error(`FPL history unavailable for player ${player.apiPlayerId}`, error.message);
+      }
+      if (avg <= 0) {
+        playerEntries.push(zeroEntry(player));
+        continue;
+      }
+      const breakdown = [{ event: 'lastSeasonAvg', points: avg }];
+      let points = avg;
+      if (player.isCaptain) {
+        breakdown.push({ event: 'captainBonus', points: avg });
+        points += avg;
+      }
+      playerEntries.push({
+        apiPlayerId: player.apiPlayerId,
+        playerName: player.name,
+        fixtureId: null,
+        points,
+        breakdown,
+      });
+    }
   }
 
-  return fixtures;
+  const totalPoints = playerEntries.reduce((sum, entry) => sum + entry.points, 0);
+  return {
+    points: totalPoints,
+    breakdown: aggregateBreakdown(playerEntries),
+    isFinal,
+  };
 }
 
 async function computeTeamScore(team, gameweek, season) {
+  if (fpl.enabled()) {
+    return computeTeamScoreFpl(team, gameweek);
+  }
+
   const fixtures = await fetchFixturesForGameweek(gameweek, season);
-  const playerEntries = [];
 
-  for (const player of team.players) {
-    let matchedFixture = null;
-    let stats = null;
-
-    for (const fixture of fixtures) {
-      const homePlayers = fixture.lineups?.flatMap((l) => l.startXI?.map((x) => x.player?.id) ?? []) ?? [];
-      const fixturePlayerStats = await sportsData.getPlayerFixtureStats(player.apiPlayerId, fixture.fixture.id);
-
-      if (fixturePlayerStats && fixturePlayerStats.minutes > 0) {
-        matchedFixture = fixture;
-        stats = fixturePlayerStats;
-        break;
-      }
-
-      if (homePlayers.includes(player.apiPlayerId)) {
-        matchedFixture = fixture;
+  // One API request per fixture covers every player in the gameweek; the
+  // per-fixture cache is shared across all teams in a league.
+  const statsByPlayer = new Map();
+  let statsIncomplete = false;
+  for (const fixture of fixtures) {
+    const fixtureId = fixture.fixture.id;
+    let fixtureMap;
+    try {
+      fixtureMap = await sportsData.getFixturePlayersMap(fixtureId, {
+        finished: isFixtureFinished(fixture),
+      });
+    } catch (error) {
+      // Provider hiccup (quota, outage, suspended key): score what we can
+      // rather than failing the whole leaderboard. The score is not marked
+      // final, so it gets recomputed once the provider recovers.
+      logger.error(`Player stats unavailable for fixture ${fixtureId}`, error.message);
+      statsIncomplete = true;
+      continue;
+    }
+    for (const [playerId, stats] of fixtureMap) {
+      const existing = statsByPlayer.get(playerId);
+      if (!existing || (existing.stats.minutes <= 0 && stats.minutes > 0)) {
+        statsByPlayer.set(playerId, { stats, fixtureId });
       }
     }
+  }
 
-    if (!stats && matchedFixture) {
-      stats = await sportsData.getPlayerFixtureStats(player.apiPlayerId, matchedFixture.fixture.id);
-    }
-
-    if (!stats) {
-      playerEntries.push({
+  const playerEntries = team.players.map((player) => {
+    const found = statsByPlayer.get(player.apiPlayerId);
+    if (!found || found.stats.minutes <= 0) {
+      return {
         apiPlayerId: player.apiPlayerId,
         playerName: player.name,
         fixtureId: null,
         points: 0,
         breakdown: [],
-      });
-      continue;
+      };
     }
 
-    const result = calculatePlayerPoints(stats, player.position, player.isCaptain);
-    playerEntries.push({
+    const result = calculatePlayerPoints(found.stats, player.position, player.isCaptain);
+    return {
       apiPlayerId: player.apiPlayerId,
       playerName: player.name,
-      fixtureId: matchedFixture?.fixture?.id ?? null,
+      fixtureId: found.fixtureId,
       points: result.points,
       breakdown: result.breakdown,
-    });
-  }
+    };
+  });
 
   const totalPoints = playerEntries.reduce((sum, entry) => sum + entry.points, 0);
-  const allFixturesFinished = fixtures.length > 0 && fixtures.every(isFixtureFinished);
+  const allFixturesFinished =
+    fixtures.length > 0 && !statsIncomplete && fixtures.every(isFixtureFinished);
 
   return {
     points: totalPoints,

@@ -4,16 +4,32 @@ import { Team } from '../models/Team.js';
 import { conflict, notFound } from '../utils/errors.js';
 import { env } from '../config/env.js';
 
-export async function createLeague({ name, ownerId, season = env.DEFAULT_SEASON }) {
+export async function createLeague({ name, ownerId, season = env.DEFAULT_SEASON, teamId }) {
+  // Attach the creator's team so they appear on their own leaderboard.
+  // Fall back to their most recent team when no teamId is passed.
+  let team = null;
+  if (teamId) {
+    team = await Team.findOne({ _id: teamId, owner: ownerId });
+    if (!team) throw notFound('TEAM_NOT_FOUND', 'Team not found');
+  } else {
+    team = await Team.findOne({ owner: ownerId }).sort({ updatedAt: -1 });
+  }
+
   const league = await League.create({
     name,
     owner: ownerId,
     season,
   });
 
+  if (team) {
+    team.leagueRef = league._id;
+    await team.save();
+  }
+
   await Membership.create({
     league: league._id,
     user: ownerId,
+    teamRef: team?._id,
   });
 
   return league;

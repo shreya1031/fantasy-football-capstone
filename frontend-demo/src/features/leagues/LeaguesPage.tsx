@@ -23,7 +23,7 @@ export function LeaguesPage() {
   const handleCreate = async () => {
     setFormError('');
     try {
-      const league = await createLeague.mutateAsync(leagueName);
+      const league = await createLeague.mutateAsync({ name: leagueName, teamId: teams?.[0]?._id });
       setCreatedCode(league.code);
       setLeagueName('');
       setShowCreate(false);

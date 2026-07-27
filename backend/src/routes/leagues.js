@@ -17,6 +17,7 @@ const router = Router();
 const createSchema = z.object({
   name: z.string().min(2).max(80),
   season: z.coerce.number().optional(),
+  teamId: z.string().optional(),
 });
 
 const joinSchema = z.object({
@@ -41,6 +42,7 @@ router.post('/', validate(createSchema), async (req, res, next) => {
       name: req.validatedBody.name,
       ownerId: req.user._id,
       season: req.validatedBody.season ?? env.DEFAULT_SEASON,
+      teamId: req.validatedBody.teamId,
     });
     res.status(201).json({ league });
   } catch (error) {

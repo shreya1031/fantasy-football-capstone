@@ -30,6 +30,14 @@ api.interceptors.request.use((config) => {
 
 let refreshPromise: Promise<string | null> | null = null;
 
+// Called when the session can no longer be recovered (refresh token expired).
+// The auth store registers a handler so the app redirects to the login page.
+let authFailureHandler: (() => void) | null = null;
+
+export function onAuthFailure(handler: () => void) {
+  authFailureHandler = handler;
+}
+
 async function refreshAccessToken() {
   if (!refreshPromise) {
     refreshPromise = api
@@ -40,6 +48,7 @@ async function refreshAccessToken() {
       })
       .catch(() => {
         setAccessToken(null);
+        authFailureHandler?.();
         return null;
       })
       .finally(() => {

@@ -13,7 +13,7 @@ const playerSchema = z.object({
   position: z.enum(POSITIONS),
   teamId: z.number().int().optional(),
   teamName: z.string().optional(),
-  photo: z.string().optional(),
+  photo: z.string().nullish(),
   isCaptain: z.boolean().default(false),
 });
 

@@ -94,8 +94,8 @@ export function useLeaderboard(leagueId?: string, gw?: number) {
 export function useCreateLeague() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (name: string) => {
-      const { data } = await api.post<{ league: League }>('/leagues', { name });
+    mutationFn: async (payload: { name: string; teamId?: string }) => {
+      const { data } = await api.post<{ league: League }>('/leagues', payload);
       return data.league;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['leagues'] }),

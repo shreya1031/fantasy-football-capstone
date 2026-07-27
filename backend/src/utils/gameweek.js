@@ -1,5 +1,9 @@
 import { env } from '../config/env.js';
 
+// A Premier League season has 38 rounds; past the season's end (or between
+// seasons) the "current" gameweek stays clamped to the final round.
+export const MAX_GAMEWEEK = 38;
+
 export function getSeasonStartDate() {
   return new Date(env.SEASON_START_DATE);
 }
@@ -10,7 +14,7 @@ export function dateToGameweek(dateInput = new Date()) {
   const diffMs = date.getTime() - seasonStart.getTime();
   if (diffMs < 0) return 1;
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-  return Math.floor(diffDays / 7) + 1;
+  return Math.min(Math.floor(diffDays / 7) + 1, MAX_GAMEWEEK);
 }
 
 export function gameweekToDateRange(gameweek) {
