@@ -39,8 +39,19 @@ export function PlayerSelectionPage() {
     }
   }, [teams, existingTeamId, players, loadFromTeam]);
 
+  // Players already placed on the pitch — hidden from the search list so the
+  // same player can't be picked twice.
+  const selectedIds = new Set(
+    players.filter((p): p is PlayerSlot => p !== null).map((p) => p.apiPlayerId)
+  );
+  const availablePlayers = playersData?.players.filter((p) => !selectedIds.has(p.id)) ?? [];
+
   const assignPlayer = (player: Player) => {
     if (selectedSlot === null) return;
+    if (selectedIds.has(player.id)) {
+      setError(`${player.name} is already in your team`);
+      return;
+    }
     const slotMeta = FORMATION_SLOTS[formation][selectedSlot];
     if (slotMeta.position !== player.position) {
       setError(`This slot requires a ${slotMeta.position}`);
@@ -130,7 +141,7 @@ export function PlayerSelectionPage() {
             <LoadingState message="Searching players" />
           ) : (
             <ul className="max-h-[480px] space-y-2 overflow-y-auto">
-              {playersData?.players.map((player) => (
+              {availablePlayers.map((player) => (
                 <motion.li
                   key={player.id}
                   layoutId={`player-${player.id}`}
