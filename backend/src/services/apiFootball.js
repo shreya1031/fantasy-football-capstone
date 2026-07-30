@@ -3,6 +3,7 @@ import { env } from '../config/env.js';
 import { cachedRequest } from '../utils/cache.js';
 import { AppError } from '../utils/errors.js';
 import { ApiQuota } from '../models/ApiQuota.js';
+import { logger } from '../config/logger.js';
 
 // Secondary provider: API-Football (v3.football.api-sports.io).
 // Used ONLY when API_FOOTBALL_KEY is set, and only for the data the
@@ -47,7 +48,29 @@ async function consumeQuota() {
   }
 }
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// The free plan also has a 10 requests/MINUTE burst limit. Track recent
+// request times and wait when a burst (e.g. the 21-request pool build)
+// would exceed it.
+const MINUTE_WINDOW_MS = 60 * 1000;
+const MINUTE_LIMIT = 9;
+let recentRequestTimes = [];
+
+async function throttlePerMinute() {
+  const now = Date.now();
+  recentRequestTimes = recentRequestTimes.filter((t) => now - t < MINUTE_WINDOW_MS);
+  if (recentRequestTimes.length >= MINUTE_LIMIT) {
+    const waitMs = MINUTE_WINDOW_MS - (now - recentRequestTimes[0]) + 1000;
+    logger.info(`API-Football minute limit reached, waiting ${Math.round(waitMs / 1000)}s`);
+    await sleep(waitMs);
+    return throttlePerMinute();
+  }
+  recentRequestTimes.push(Date.now());
+}
+
 async function apiGet(path, params = {}) {
+  await throttlePerMinute();
   await consumeQuota();
   try {
     const response = await client.get(path, { params });
@@ -59,7 +82,14 @@ async function apiGet(path, params = {}) {
     }
     return response.data?.response ?? [];
   } catch (error) {
-    if (error instanceof AppError) throw error;
+    if (error instanceof AppError) {
+      logger.error(`API-Football ${path} failed`, JSON.stringify(error.details ?? error.message));
+      throw error;
+    }
+    logger.error(
+      `API-Football ${path} failed`,
+      `${error.code ?? error.message} status=${error.response?.status ?? 'none'}`
+    );
     throw new AppError('API_FOOTBALL_UNAVAILABLE', 'Sports data provider unavailable', 502);
   }
 }

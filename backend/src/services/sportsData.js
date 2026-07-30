@@ -17,6 +17,7 @@ const TTL = {
   competitions: 24 * 60 * 60 * 1000,
   playerPool: 24 * 60 * 60 * 1000,
   fixturesByDate: 60 * 60 * 1000,
+  seasonCalendar: 6 * 60 * 60 * 1000,
   fixtureById: 30 * 1000,
   standings: 15 * 60 * 1000,
   playerStats: 30 * 60 * 1000,
@@ -281,6 +282,15 @@ async function getRawMatch(fixtureId, ttlMs) {
   return cachedSportsDataRequest(key, ttlMs, () => apiGet(`/matches/${fixtureId}`));
 }
 
+// Every match of the current season in one cached request.
+async function getSeasonCalendar() {
+  const competition = env.FOOTBALL_DATA_COMPETITION;
+  const key = `fixtures:seasonCalendar:${competition}`;
+  return cachedSportsDataRequest(key, TTL.seasonCalendar, () =>
+    apiGet(`/competitions/${competition}/matches`)
+  );
+}
+
 function resolvePlayerPool(season) {
   if (fpl.enabled()) return fpl.getPlayerPool();
   if (apiFootball.enabled()) return apiFootball.getPlayerPool(season);
@@ -323,6 +333,55 @@ export const sportsData = {
       apiGet(`/competitions/${competition}/matches`, { dateFrom, dateTo })
     );
     return (data.matches ?? []).map(mapMatch);
+  },
+
+  // Smart default for the fixtures page: the requested date if it has
+  // matches, otherwise the nearest matchday (upcoming preferred, else the
+  // most recent past one). Uses the season calendar — one cached request.
+  async getNearestMatchday(fromDate) {
+    const data = await getSeasonCalendar();
+
+    const byDate = new Map();
+    for (const match of data.matches ?? []) {
+      const day = (match.utcDate ?? '').slice(0, 10);
+      if (!day) continue;
+      if (!byDate.has(day)) byDate.set(day, []);
+      byDate.get(day).push(mapMatch(match));
+    }
+    if (!byDate.size) return { date: fromDate, fixtures: [] };
+
+    const dates = [...byDate.keys()].sort();
+    const chosen = byDate.has(fromDate)
+      ? fromDate
+      : (dates.find((d) => d > fromDate) ?? dates[dates.length - 1]);
+    return { date: chosen, fixtures: byDate.get(chosen) };
+  },
+
+  // The whole season's schedule — every match, every round — from the
+  // cached calendar.
+  async getSeasonSchedule() {
+    const data = await getSeasonCalendar();
+    return (data.matches ?? [])
+      .filter((m) => m.utcDate)
+      .sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate))
+      .map(mapMatch);
+  },
+
+  // The next `limit` matches from now on (in-play matches included), with
+  // kickoff time, round number, teams, and crests.
+  async getUpcomingFixtures(limit = 10) {
+    const data = await getSeasonCalendar();
+    const includeFrom = Date.now() - 3 * 60 * 60 * 1000;
+    return (data.matches ?? [])
+      .filter(
+        (m) =>
+          m.utcDate &&
+          m.status !== 'FINISHED' &&
+          new Date(m.utcDate).getTime() >= includeFrom
+      )
+      .sort((a, b) => new Date(a.utcDate) - new Date(b.utcDate))
+      .slice(0, limit)
+      .map(mapMatch);
   },
 
   async getFixtureById(fixtureId) {

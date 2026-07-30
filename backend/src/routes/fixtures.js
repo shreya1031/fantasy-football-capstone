@@ -13,13 +13,43 @@ const dateSchema = z.object({
 
 router.get('/', validate(dateSchema, 'query'), async (req, res, next) => {
   try {
-    const date = req.validatedQuery.date ?? new Date().toISOString().slice(0, 10);
+    // No explicit date: show the nearest matchday instead of a potentially
+    // empty "today" (off-season, international breaks, midweek gaps).
+    if (!req.validatedQuery.date) {
+      const today = new Date().toISOString().slice(0, 10);
+      const nearest = await sportsData.getNearestMatchday(today);
+      return res.json(nearest);
+    }
+
+    const date = req.validatedQuery.date;
     const fixtures = await sportsData.getFixturesByDate(
       date,
       req.validatedQuery.league,
       req.validatedQuery.season
     );
     res.json({ date, fixtures });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const upcomingSchema = z.object({
+  limit: z.coerce.number().min(1).max(20).default(10),
+});
+
+router.get('/upcoming', validate(upcomingSchema, 'query'), async (req, res, next) => {
+  try {
+    const fixtures = await sportsData.getUpcomingFixtures(req.validatedQuery.limit);
+    res.json({ fixtures });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/schedule', async (req, res, next) => {
+  try {
+    const fixtures = await sportsData.getSeasonSchedule();
+    res.json({ fixtures });
   } catch (error) {
     next(error);
   }

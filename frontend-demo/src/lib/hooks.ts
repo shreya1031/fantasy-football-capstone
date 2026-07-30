@@ -154,6 +154,32 @@ export function useFixtures(date?: string) {
   });
 }
 
+export function useUpcomingFixtures(limit = 10) {
+  return useQuery({
+    queryKey: ['fixtures', 'upcoming', limit],
+    staleTime: HOUR,
+    ...paidDataQueryOptions,
+    queryFn: async () => {
+      const { data } = await api.get<{ fixtures: Fixture[] }>('/fixtures/upcoming', {
+        params: { limit },
+      });
+      return data.fixtures;
+    },
+  });
+}
+
+export function useSeasonSchedule() {
+  return useQuery({
+    queryKey: ['fixtures', 'schedule'],
+    staleTime: 6 * HOUR,
+    ...paidDataQueryOptions,
+    queryFn: async () => {
+      const { data } = await api.get<{ fixtures: Fixture[] }>('/fixtures/schedule');
+      return data.fixtures;
+    },
+  });
+}
+
 export function useFixture(id?: string) {
   return useQuery({
     queryKey: ['fixtures', id],

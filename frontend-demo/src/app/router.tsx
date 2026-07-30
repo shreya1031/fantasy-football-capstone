@@ -12,6 +12,7 @@ const CreateTeamPage = lazy(() => import('../features/team/create/CreateTeamPage
 const PlayerSelectionPage = lazy(() => import('../features/team/select/PlayerSelectionPage').then((m) => ({ default: m.PlayerSelectionPage })));
 const MyTeamPage = lazy(() => import('../features/team/my/MyTeamPage').then((m) => ({ default: m.MyTeamPage })));
 const LeaguesPage = lazy(() => import('../features/leagues/LeaguesPage').then((m) => ({ default: m.LeaguesPage })));
+const FixturesPage = lazy(() => import('../features/fixtures/FixturesPage').then((m) => ({ default: m.FixturesPage })));
 const LeagueDetailPage = lazy(() => import('../features/leagues/LeagueDetailPage').then((m) => ({ default: m.LeagueDetailPage })));
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
 
@@ -35,6 +36,7 @@ export function AppRouter() {
           <Route path="/team/create" element={<Lazy><CreateTeamPage /></Lazy>} />
           <Route path="/team/select" element={<Lazy><PlayerSelectionPage /></Lazy>} />
           <Route path="/team/my" element={<Lazy><MyTeamPage /></Lazy>} />
+          <Route path="/fixtures" element={<Lazy><FixturesPage /></Lazy>} />
           <Route path="/leagues" element={<Lazy><LeaguesPage /></Lazy>} />
           <Route path="/leagues/:id" element={<Lazy><LeagueDetailPage /></Lazy>} />
         </Route>

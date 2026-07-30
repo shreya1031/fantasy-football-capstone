@@ -8,6 +8,7 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', end: true },
   { to: '/team/create', label: 'Create Team' },
   { to: '/team/my', label: 'My Team' },
+  { to: '/fixtures', label: 'Fixtures' },
   { to: '/leagues', label: 'Leagues' },
 ];
 

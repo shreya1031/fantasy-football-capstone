@@ -82,6 +82,7 @@ export interface Fixture {
     away: { id: number; name: string; logo?: string };
   };
   goals: { home: number | null; away: number | null };
+  matchday?: number;
   events?: Array<{
     time: { elapsed: number };
     team: { id: number; name: string };

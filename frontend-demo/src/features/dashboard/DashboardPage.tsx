@@ -4,21 +4,30 @@ import { Panel } from '../../design/primitives/Panel';
 import { Button } from '../../design/primitives/Button';
 import { BadgeChip } from '../../design/primitives/BadgeChip';
 import { LoadingState, ErrorState, EmptyState } from '../../design/primitives/States';
-import { useTeams, useLeagues, useFixtures, useTeamScore } from '../../lib/hooks';
-import { DEFAULT_FIXTURE_DATE } from '../../lib/config';
+import { useTeams, useLeagues, useUpcomingFixtures, useTeamScore } from '../../lib/hooks';
+
+function kickoffDay(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+function kickoffTime(dateStr: string) {
+  return new Date(dateStr).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
 
 export function DashboardPage() {
   const { data: teams, isLoading: teamsLoading, error: teamsError, refetch: refetchTeams } = useTeams();
   const { data: leagues, isLoading: leaguesLoading } = useLeagues();
-  const { data: fixturesData, isLoading: fixturesLoading } = useFixtures(DEFAULT_FIXTURE_DATE);
+  const { data: upcoming = [], isLoading: fixturesLoading } = useUpcomingFixtures(10);
 
   const primaryTeam = teams?.[0];
   const { data: scoreData } = useTeamScore(primaryTeam?._id);
 
   if (teamsLoading) return <LoadingState message="Loading dashboard" />;
-  if (teamsError) return <ErrorState message="Failed to load dashboard" onRetry={() => refetchTeams()} />;
-
-  const upcoming = fixturesData?.fixtures?.slice(0, 4) ?? [];
+  if (teamsError) return <ErrorState message="Failed to load dashboard" onRetry={() => refetchTeams()} />
 
   return (
     <MotionPage className="mx-auto max-w-6xl space-y-6">
@@ -78,7 +87,16 @@ export function DashboardPage() {
         )}
       </Panel>
 
-      <Panel title="Live & Upcoming">
+      <Panel
+        title="Live & Upcoming"
+        action={
+          <Link to="/fixtures?view=schedule">
+            <Button variant="ghost" className="text-xs">
+              All Fixtures
+            </Button>
+          </Link>
+        }
+      >
         {fixturesLoading ? (
           <LoadingState message="Loading fixtures" />
         ) : upcoming.length ? (
@@ -88,25 +106,42 @@ export function DashboardPage() {
               return (
                 <li
                   key={f.fixture.id}
-                  className={`flex items-center justify-between rounded-lg border px-4 py-3 ${
+                  className={`flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg border px-4 py-3 ${
                     live ? 'border-red-200 bg-red-50' : 'border-[var(--panel-border)] bg-[var(--bg-0)]/50'
                   }`}
                 >
-                  <span className="font-body text-sm">
-                    {f.teams.home.name} vs {f.teams.away.name}
-                  </span>
+                  <div className="flex min-w-0 items-center gap-2 font-body text-sm">
+                    {f.teams.home.logo && (
+                      <img src={f.teams.home.logo} alt="" className="h-5 w-5 object-contain" />
+                    )}
+                    <span className="truncate">{f.teams.home.name}</span>
+                    <span className="text-[var(--fg-2)]">vs</span>
+                    {f.teams.away.logo && (
+                      <img src={f.teams.away.logo} alt="" className="h-5 w-5 object-contain" />
+                    )}
+                    <span className="truncate">{f.teams.away.name}</span>
+                  </div>
                   <div className="flex items-center gap-3">
-                    {live && <BadgeChip tone="orange">Live</BadgeChip>}
-                    <span className="font-stat text-lg font-semibold">
-                      {f.goals.home ?? '-'} – {f.goals.away ?? '-'}
-                    </span>
+                    {f.matchday != null && <BadgeChip tone="muted">GW {f.matchday}</BadgeChip>}
+                    {live ? (
+                      <>
+                        <BadgeChip tone="orange">Live</BadgeChip>
+                        <span className="font-stat text-lg font-semibold">
+                          {f.goals.home ?? 0} – {f.goals.away ?? 0}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="font-stat text-sm font-semibold text-[var(--fg-1)]">
+                        {kickoffDay(f.fixture.date)} · {kickoffTime(f.fixture.date)}
+                      </span>
+                    )}
                   </div>
                 </li>
               );
             })}
           </ul>
         ) : (
-          <EmptyState title="No fixtures today" description="Check back on matchday." />
+          <EmptyState title="No upcoming fixtures" description="Check back closer to matchday." />
         )}
       </Panel>
 
