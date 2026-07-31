@@ -14,6 +14,7 @@ import playerRoutes from './routes/players.js';
 import fixtureRoutes from './routes/fixtures.js';
 import standingsRoutes from './routes/standings.js';
 import scoringRoutes from './routes/scoring.js';
+import adminRoutes from './routes/admin.js';
 
 export function createApp() {
   const app = express();
@@ -51,6 +52,7 @@ export function createApp() {
   app.use('/api/fixtures', fixtureRoutes);
   app.use('/api/standings', standingsRoutes);
   app.use('/api/scoring', scoringRoutes);
+  app.use('/api/admin', adminRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

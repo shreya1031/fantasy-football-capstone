@@ -45,6 +45,7 @@ function authResponse(user, res, statusCode = 200) {
       id: user._id,
       email: user.email,
       displayName: user.displayName,
+      role: user.role ?? 'user',
     },
     accessToken,
   });
@@ -106,6 +107,7 @@ router.get('/me', authMiddleware, (req, res) => {
       id: req.user._id,
       email: req.user.email,
       displayName: req.user.displayName,
+      role: req.user.role ?? 'user',
     },
   });
 });

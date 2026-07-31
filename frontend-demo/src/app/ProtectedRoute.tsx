@@ -11,6 +11,16 @@ export function ProtectedRoute() {
   return <Outlet />;
 }
 
+export function AdminRoute() {
+  const { user, isAuthenticated, isLoading } = useAuthStore();
+
+  if (isLoading) return <LoadingState message="AUTH CHECK" />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'admin') return <Navigate to="/dashboard" replace />;
+
+  return <Outlet />;
+}
+
 export function GuestRoute() {
   const { isAuthenticated, isLoading } = useAuthStore();
   const location = useLocation();

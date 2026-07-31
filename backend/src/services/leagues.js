@@ -67,6 +67,32 @@ export async function getUserLeagues(userId) {
   return memberships;
 }
 
+// Deletes a league along with its memberships, and detaches member teams.
+export async function deleteLeague(leagueId) {
+  const league = await League.findById(leagueId);
+  if (!league) throw notFound('LEAGUE_NOT_FOUND', 'League not found');
+
+  await Team.updateMany({ leagueRef: league._id }, { $unset: { leagueRef: 1 } });
+  await Membership.deleteMany({ league: league._id });
+  await league.deleteOne();
+  return league;
+}
+
+// Removes one member from a league and detaches their team.
+export async function removeLeagueMember(leagueId, membershipId) {
+  const membership = await Membership.findOne({ _id: membershipId, league: leagueId });
+  if (!membership) throw notFound('MEMBER_NOT_FOUND', 'League member not found');
+
+  if (membership.teamRef) {
+    await Team.updateOne(
+      { _id: membership.teamRef, leagueRef: leagueId },
+      { $unset: { leagueRef: 1 } }
+    );
+  }
+  await membership.deleteOne();
+  return membership;
+}
+
 export async function getLeagueWithMembers(leagueId) {
   const league = await League.findById(leagueId).populate('owner', 'displayName email');
   if (!league) throw notFound('LEAGUE_NOT_FOUND', 'League not found');

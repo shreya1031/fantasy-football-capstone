@@ -1,6 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from './api';
-import type { Team, League, Membership, Player, Fixture, StandingRow, GameweekScore, LeaderboardRow } from './types';
+import type {
+  Team,
+  League,
+  Membership,
+  Player,
+  Fixture,
+  StandingRow,
+  GameweekScore,
+  LeaderboardRow,
+  AdminUser,
+  AdminLeague,
+} from './types';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
@@ -110,6 +121,79 @@ export function useJoinLeague() {
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['leagues'] }),
+  });
+}
+
+export function useDeleteLeague() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (leagueId: string) => {
+      await api.delete(`/leagues/${leagueId}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['leagues'] }),
+  });
+}
+
+export function useRemoveLeagueMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ leagueId, membershipId }: { leagueId: string; membershipId: string }) => {
+      await api.delete(`/leagues/${leagueId}/members/${membershipId}`);
+    },
+    onSuccess: (_, vars) => {
+      qc.invalidateQueries({ queryKey: ['leagues', vars.leagueId] });
+      qc.invalidateQueries({ queryKey: ['leaderboard', vars.leagueId] });
+    },
+  });
+}
+
+export function useAdminUsers() {
+  return useQuery({
+    queryKey: ['admin', 'users'],
+    queryFn: async () => {
+      const { data } = await api.get<{ users: AdminUser[] }>('/admin/users');
+      return data.users;
+    },
+  });
+}
+
+export function useAdminLeagues() {
+  return useQuery({
+    queryKey: ['admin', 'leagues'],
+    queryFn: async () => {
+      const { data } = await api.get<{ leagues: AdminLeague[] }>('/admin/leagues');
+      return data.leagues;
+    },
+  });
+}
+
+export function useAdminDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      await api.delete(`/admin/users/${userId}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
+  });
+}
+
+export function useAdminDeleteLeague() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (leagueId: string) => {
+      await api.delete(`/admin/leagues/${leagueId}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
+  });
+}
+
+export function useAdminRemoveMember() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ leagueId, membershipId }: { leagueId: string; membershipId: string }) => {
+      await api.delete(`/admin/leagues/${leagueId}/members/${membershipId}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin'] }),
   });
 }
 

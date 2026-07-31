@@ -31,6 +31,9 @@ export function AppShell() {
   const today = new Date().toISOString().slice(0, 10);
   const { data } = useFixtures(today);
 
+  const visibleNavItems =
+    user?.role === 'admin' ? [...navItems, { to: '/admin', label: 'Admin' }] : navItems;
+
   const tickerItems =
     data?.fixtures
       ?.filter((f) => ['1H', '2H', 'HT', 'LIVE'].includes(f.fixture.status.short))
@@ -55,7 +58,7 @@ export function AppShell() {
             </div>
           </div>
           <nav className="flex flex-1 flex-col gap-1 p-3">
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
@@ -89,7 +92,7 @@ export function AppShell() {
       </div>
 
       <nav className="fixed inset-x-0 bottom-0 z-20 flex border-t border-[var(--panel-border)] bg-white shadow-[0_-2px_12px_rgba(26,46,26,0.06)] md:hidden">
-        {navItems.map((item) => (
+        {visibleNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

@@ -1,7 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { AppShell } from './AppShell';
-import { ProtectedRoute, GuestRoute } from './ProtectedRoute';
+import { ProtectedRoute, GuestRoute, AdminRoute } from './ProtectedRoute';
 import { LoadingState } from '../design/primitives/States';
 
 const HomePage = lazy(() => import('../features/home/HomePage').then((m) => ({ default: m.HomePage })));
@@ -15,6 +15,7 @@ const LeaguesPage = lazy(() => import('../features/leagues/LeaguesPage').then((m
 const FixturesPage = lazy(() => import('../features/fixtures/FixturesPage').then((m) => ({ default: m.FixturesPage })));
 const LeagueDetailPage = lazy(() => import('../features/leagues/LeagueDetailPage').then((m) => ({ default: m.LeagueDetailPage })));
 const NotFoundPage = lazy(() => import('../pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })));
+const AdminPage = lazy(() => import('../features/admin/AdminPage').then((m) => ({ default: m.AdminPage })));
 
 function Lazy({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<LoadingState />}>{children}</Suspense>;
@@ -39,6 +40,9 @@ export function AppRouter() {
           <Route path="/fixtures" element={<Lazy><FixturesPage /></Lazy>} />
           <Route path="/leagues" element={<Lazy><LeaguesPage /></Lazy>} />
           <Route path="/leagues/:id" element={<Lazy><LeagueDetailPage /></Lazy>} />
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<Lazy><AdminPage /></Lazy>} />
+          </Route>
         </Route>
       </Route>
 

@@ -7,7 +7,11 @@ import {
   joinLeagueByCode,
   getUserLeagues,
   getLeagueWithMembers,
+  deleteLeague,
+  removeLeagueMember,
 } from '../services/leagues.js';
+import { League } from '../models/League.js';
+import { forbidden, notFound } from '../utils/errors.js';
 import { getLeagueLeaderboard } from '../services/scoring.js';
 import { env } from '../config/env.js';
 import { getCurrentGameweek } from '../utils/gameweek.js';
@@ -67,6 +71,37 @@ router.get('/:id', async (req, res, next) => {
   try {
     const data = await getLeagueWithMembers(req.params.id);
     res.json(data);
+  } catch (error) {
+    next(error);
+  }
+});
+
+// Only the league owner (or an admin) may delete a league or kick members.
+async function requireLeagueOwner(req) {
+  const league = await League.findById(req.params.id);
+  if (!league) throw notFound('LEAGUE_NOT_FOUND', 'League not found');
+  const isOwner = league.owner.toString() === req.user._id.toString();
+  if (!isOwner && req.user.role !== 'admin') {
+    throw forbidden('NOT_LEAGUE_OWNER', 'Only the league owner can do this');
+  }
+  return league;
+}
+
+router.delete('/:id', async (req, res, next) => {
+  try {
+    await requireLeagueOwner(req);
+    await deleteLeague(req.params.id);
+    res.json({ message: 'League deleted' });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.delete('/:id/members/:membershipId', async (req, res, next) => {
+  try {
+    await requireLeagueOwner(req);
+    await removeLeagueMember(req.params.id, req.params.membershipId);
+    res.json({ message: 'Member removed' });
   } catch (error) {
     next(error);
   }

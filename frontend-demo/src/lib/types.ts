@@ -1,7 +1,34 @@
 export interface User {
   id: string;
+  _id?: string;
   email: string;
   displayName: string;
+  role?: 'user' | 'admin';
+}
+
+export interface AdminUser {
+  _id: string;
+  email: string;
+  displayName: string;
+  role?: 'user' | 'admin';
+  createdAt?: string;
+  teamCount: number;
+  leagueCount: number;
+}
+
+export interface AdminLeague {
+  _id: string;
+  name: string;
+  code: string;
+  season: number;
+  createdAt?: string;
+  owner: { _id: string; displayName: string; email: string } | string;
+  members: Array<{
+    _id: string;
+    user: { _id: string; displayName: string; email: string } | null;
+    teamRef?: { _id: string; name: string } | null;
+    joinedAt?: string;
+  }>;
 }
 
 export interface ApiError {
